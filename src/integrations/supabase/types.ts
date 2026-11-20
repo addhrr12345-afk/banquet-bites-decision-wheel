@@ -225,9 +225,11 @@ export type Database = {
       wheel_settings: {
         Row: {
           close_hour: number
+          close_minute: number
           id: number
           max_spins: number
           open_hour: number
+          open_minute: number
           prizes: Json
           subtitle: string
           title: string
@@ -235,9 +237,11 @@ export type Database = {
         }
         Insert: {
           close_hour?: number
+          close_minute?: number
           id?: number
           max_spins?: number
           open_hour?: number
+          open_minute?: number
           prizes?: Json
           subtitle?: string
           title?: string
@@ -245,9 +249,11 @@ export type Database = {
         }
         Update: {
           close_hour?: number
+          close_minute?: number
           id?: number
           max_spins?: number
           open_hour?: number
+          open_minute?: number
           prizes?: Json
           subtitle?: string
           title?: string
@@ -301,12 +307,29 @@ export type Database = {
         Args: { p_code: string; p_device: string; p_ip: string }
         Returns: Json
       }
+      wheel_day_fraction: {
+        Args: { p_close: number; p_local: string; p_open: number }
+        Returns: number
+      }
       wheel_prize_allowance: {
         Args: {
           p_close: number
           p_limit: number
           p_local: string
           p_open: number
+        }
+        Returns: number
+      }
+      wheel_prize_ceiling: {
+        Args: { p_frac: number; p_limit: number }
+        Returns: number
+      }
+      wheel_prize_chance: {
+        Args: {
+          p_frac: number
+          p_history: number
+          p_remaining: number
+          p_today_spins: number
         }
         Returns: number
       }

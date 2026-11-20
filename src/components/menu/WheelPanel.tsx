@@ -62,8 +62,9 @@ function ClaimVerifier({ claims }: { claims: { code: string; prize: string; crea
   </div>;
 }
 
-type Draft = { title: string; subtitle: string; max_spins: number; open_hour: number; close_hour: number; prizes: Prize[] };
-const hourLabel = (h: number) => `${String(h).padStart(2, "0")}:00`;
+type Draft = { title: string; subtitle: string; max_spins: number; open_minute: number; close_minute: number; prizes: Prize[] };
+const timeLabel = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const halfHours = Array.from({ length: 49 }, (_, i) => i * 30);
 
 export function WheelPanel() {
   const wheel = useQuery(wheelQuery);
@@ -71,7 +72,7 @@ export function WheelPanel() {
   const save = useServerFn(saveWheel); const reset = useServerFn(resetWheelToday);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (wheel.data && !draft) setDraft({ title: wheel.data.title, subtitle: wheel.data.subtitle, max_spins: wheel.data.max_spins, open_hour: wheel.data.open_hour, close_hour: wheel.data.close_hour, prizes: wheel.data.prizes }); }, [wheel.data, draft]);
+  useEffect(() => { if (wheel.data && !draft) setDraft({ title: wheel.data.title, subtitle: wheel.data.subtitle, max_spins: wheel.data.max_spins, open_minute: wheel.data.open_minute, close_minute: wheel.data.close_minute, prizes: wheel.data.prizes }); }, [wheel.data, draft]);
 
   if (wheel.isError) return <p className="mt-6 text-sm text-destructive">Wheel settings could not be loaded.</p>;
   if (!draft || !wheel.data) return <p className="mt-6 text-sm text-muted-foreground">Loading...</p>;
@@ -107,15 +108,15 @@ export function WheelPanel() {
         times per day <span className="text-xs font-normal text-muted-foreground">(0 = unlimited)</span></label>
       <div className="space-y-1.5">
         <div className="flex flex-wrap items-center gap-2 text-sm font-medium">Café open from
-          <select aria-label="Opening time" className={base} value={draft.open_hour} onChange={(e) => setDraft({ ...draft, open_hour: Number(e.target.value) })}>
-            {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
+          <select aria-label="Opening time" className={base} value={draft.open_minute} onChange={(e) => setDraft({ ...draft, open_minute: Number(e.target.value) })}>
+            {halfHours.slice(0, -1).map((m) => <option key={m} value={m}>{timeLabel(m)}</option>)}
           </select>
           to
-          <select aria-label="Closing time" className={base} value={draft.close_hour} onChange={(e) => setDraft({ ...draft, close_hour: Number(e.target.value) })}>
-            {Array.from({ length: 24 }, (_, i) => i + 1).map((h) => <option key={h} value={h}>{h === 24 ? "24:00" : hourLabel(h)}</option>)}
+          <select aria-label="Closing time" className={base} value={draft.close_minute} onChange={(e) => setDraft({ ...draft, close_minute: Number(e.target.value) })}>
+            {halfHours.slice(1).map((m) => <option key={m} value={m}>{timeLabel(m)}</option>)}
           </select>
         </div>
-        <p className="text-xs text-muted-foreground">Daily-limit prizes are spread evenly across these hours, so they don't all go in the first hour.</p>
+        <p className="text-xs text-muted-foreground">Daily-limit prizes are spread across these hours and adjust to how busy it is: quiet mornings roll prizes over to later, busy hours make each spin less likely to win.</p>
       </div>
     </div>
 

@@ -36,6 +36,13 @@
       "when": 1795194043202,
       "tag": "0004_spread_wheel_prizes_over_day",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795194357246,
+      "tag": "0005_adaptive_wheel_prize_pacing",
+      "breakpoints": true
     }
   ]
 }

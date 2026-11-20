@@ -12,12 +12,12 @@ export const wheelSchema = z.object({
   title: z.string().trim().max(80),
   subtitle: z.string().trim().max(160),
   max_spins: z.number().int().min(0).max(99),
-  /** Café opening hours (local time); limited prizes are spread across them. */
-  open_hour: z.number().int().min(0).max(23).default(8),
-  close_hour: z.number().int().min(1).max(24).default(22),
+  /** Café opening hours as minutes after midnight (local time); limited prizes are spread across them. */
+  open_minute: z.number().int().min(0).max(1410).default(450),
+  close_minute: z.number().int().min(30).max(1440).default(1260),
   prizes: z.array(prizeSchema).min(2).max(16)
     .refine((p) => new Set(p.map((x) => x.t.toLocaleLowerCase("tr"))).size === p.length, "Prize names must be different."),
-}).refine((w) => w.close_hour > w.open_hour, "Closing time must be after opening time.");
+}).refine((w) => w.close_minute > w.open_minute, "Closing time must be after opening time.");
 /** Public wheel data for guests: daily limits stay on the server. */
 export const guestWheelSchema = z.object({
   title: z.string(),
@@ -40,12 +40,36 @@ export function wheelDay(now = new Date()): string {
   return now.toLocaleDateString("en-CA", { timeZone: "Europe/Istanbul" });
 }
 
-/**
- * How many winners a limited prize may have so far today. Open hours are split into `limit`
- * equal parts and each prize unlocks in the middle of its part (3 prizes, 08–22: 10:20, 15:00, 19:40).
- * Mirrors public.wheel_prize_allowance() in the database, which is what actually decides.
+/*
+ * Daily-limit prize pacing. The database functions wheel_day_fraction(), wheel_prize_ceiling() and
+ * wheel_prize_chance() decide on every spin; these mirrors use the same formulas for tests.
  */
-export function prizeAllowance(limit: number, localHour: number, open: number, close: number): number {
-  const frac = Math.max(0, Math.min(1, (localHour - open) / (close - open)));
-  return Math.min(limit, Math.floor(limit * frac + 0.5));
+
+/** Share of today's open hours that has passed: 0 before opening, 1 after closing. */
+export function dayFraction(localMinute: number, open: number, close: number): number {
+  return Math.max(0, Math.min(1, (localMinute - open) / (close - open)));
+}
+
+/**
+ * Hard ceiling: open hours are split into `limit` equal parts and each part releases one more
+ * winner (3 prizes, 07:30–21:00: 07:30, 12:00, 16:30). Unwon prizes roll over to later parts.
+ */
+export function prizeCeiling(limit: number, frac: number): number {
+  if (frac <= 0) return 0;
+  if (frac >= 1) return limit;
+  return Math.min(limit, Math.floor(limit * frac) + 1);
+}
+
+/**
+ * Chance that this spin wins one of the prize's remaining copies: remaining copies divided by the
+ * spins still expected today. Expected spins for the whole day are the larger of today's pace so far
+ * and the average of the last 7 days (30 with no history), so a busy day lowers the chance and a
+ * quiet morning does not hand everything to the first evening guests. Near closing the chance
+ * reaches 100% so leftover prizes still go out.
+ */
+export function prizeChance(remaining: number, frac: number, todaySpins: number, historyAvg: number | null): number {
+  const observed = todaySpins / Math.max(frac, 0.1);
+  const total = Math.max(observed, historyAvg ?? 30);
+  const expectedLeft = Math.max(total * (1 - frac), 1);
+  return Math.min(1, remaining / expectedLeft);
 }

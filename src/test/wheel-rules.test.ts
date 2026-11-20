@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { prizeMode, limitForMode, wheelSchema, wheelDay, prizeAllowance } from "@/lib/wheel-schema";
+import { prizeMode, limitForMode, wheelSchema, wheelDay, dayFraction, prizeCeiling, prizeChance } from "@/lib/wheel-schema";
 
 const prize = (t: string, limit: number | null) => ({ t, e: "🎁", c: "#8d5524", limit });
 
@@ -26,31 +26,66 @@ test("guest wheel accepts public settings without daily limits", () => {
   expect(ok.success).toBe(true);
 });
 
-describe("limited prizes are spread over the open hours", () => {
-  // 3 prizes, café open 08:00–22:00: they unlock at 10:20, 15:00 and 19:40.
-  it("gives none of 3 prizes before 10:20", () => {
-    expect(prizeAllowance(3, 7, 8, 22)).toBe(0);
-    expect(prizeAllowance(3, 8.5, 8, 22)).toBe(0);
-    expect(prizeAllowance(3, 10 + 19 / 60, 8, 22)).toBe(0);
+// Café open 07:30–21:00 (450–1260 minutes), as the owner asked.
+const OPEN = 450, CLOSE = 1260;
+const at = (h: number, m = 0) => dayFraction(h * 60 + m, OPEN, CLOSE);
+
+describe("limited prizes: ceiling across the open hours", () => {
+  it("gives no limited prize before 07:30", () => {
+    expect(prizeCeiling(3, at(7, 0))).toBe(0);
   });
-  it("allows only 1 of 3 prizes between 10:20 and 15:00", () => {
-    expect(prizeAllowance(3, 10 + 21 / 60, 8, 22)).toBe(1);
-    expect(prizeAllowance(3, 14 + 59 / 60, 8, 22)).toBe(1);
+  it("releases 1 of 3 prizes from 07:30, 2 from 12:00, 3 from 16:30", () => {
+    expect(prizeCeiling(3, at(7, 31))).toBe(1);
+    expect(prizeCeiling(3, at(11, 59))).toBe(1);
+    expect(prizeCeiling(3, at(12, 1))).toBe(2);
+    expect(prizeCeiling(3, at(16, 29))).toBe(2);
+    expect(prizeCeiling(3, at(16, 31))).toBe(3);
   });
-  it("allows 2 of 3 prizes between 15:00 and 19:40", () => {
-    expect(prizeAllowance(3, 15 + 1 / 60, 8, 22)).toBe(2);
-    expect(prizeAllowance(3, 19 + 39 / 60, 8, 22)).toBe(2);
-  });
-  it("allows all 3 prizes after 19:40", () => {
-    expect(prizeAllowance(3, 19 + 41 / 60, 8, 22)).toBe(3);
-    expect(prizeAllowance(3, 23, 8, 22)).toBe(3);
-  });
-  it("unlocks a single daily prize at midday (15:00)", () => {
-    expect(prizeAllowance(1, 14.9, 8, 22)).toBe(0);
-    expect(prizeAllowance(1, 15.1, 8, 22)).toBe(1);
+  it("releases every remaining prize after 21:00", () => {
+    expect(prizeCeiling(3, at(21, 30))).toBe(3);
   });
   it("rejects a closing time before the opening time", () => {
     const p = (t: string) => ({ t, e: "🎁", c: "#8d5524", limit: null });
-    expect(wheelSchema.safeParse({ title: "", subtitle: "", max_spins: 2, open_hour: 22, close_hour: 8, prizes: [p("A"), p("B")] }).success).toBe(false);
+    expect(wheelSchema.safeParse({ title: "", subtitle: "", max_spins: 2, open_minute: 1260, close_minute: 450, prizes: [p("A"), p("B")] }).success).toBe(false);
+  });
+});
+
+describe("limited prizes: chance adapts to how busy the café is", () => {
+  it("is low on a busy morning and higher on a quiet one", () => {
+    expect(prizeChance(3, at(9), 40, 100)).toBeLessThan(prizeChance(3, at(9), 2, 10));
+  });
+  it("reaches 100% just before closing so leftover prizes are still given", () => {
+    expect(prizeChance(1, at(20, 55), 50, 60)).toBe(1);
+  });
+});
+
+/** Simulates one day: spins at the given minutes, returns the minutes when the 3 limited prizes were won. */
+function simulateDay(spinMinutes: number[], historyAvg: number | null, seed: number) {
+  let r = seed;
+  const rand = () => ((r = (r * 1103515245 + 12345) % 2147483648) / 2147483648);
+  const wins: number[] = [];
+  spinMinutes.forEach((m, i) => {
+    const frac = dayFraction(m, OPEN, CLOSE);
+    if (wins.length < prizeCeiling(3, frac) && rand() < prizeChance(3 - wins.length, frac, i, historyAvg)) wins.push(m);
+  });
+  return wins;
+}
+const evenly = (n: number, from: number, to: number) => Array.from({ length: n }, (_, i) => from + ((to - from) * (i + 0.5)) / n);
+
+describe("limited prizes: simulated days", () => {
+  it("on a busy day (120 spins) never gives 2 before 12:00 or 3 before 16:30, and gives all 3", () => {
+    let allGiven = 0;
+    for (let seed = 1; seed <= 200; seed++) {
+      const wins = simulateDay(evenly(120, OPEN, CLOSE), 120, seed);
+      expect(wins.filter((m) => m < 720).length).toBeLessThanOrEqual(1);
+      expect(wins.filter((m) => m < 990).length).toBeLessThanOrEqual(2);
+      if (wins.length === 3) allGiven++;
+    }
+    expect(allGiven).toBeGreaterThanOrEqual(190);
+  });
+  it("when nobody comes in the morning, the prizes roll over to the evening (10 spins after 17:00)", () => {
+    let allGiven = 0;
+    for (let seed = 1; seed <= 200; seed++) if (simulateDay(evenly(10, 17 * 60, CLOSE), 40, seed).length === 3) allGiven++;
+    expect(allGiven).toBeGreaterThanOrEqual(180);
   });
 });
