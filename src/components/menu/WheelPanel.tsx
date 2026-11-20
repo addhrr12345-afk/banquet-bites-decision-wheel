@@ -11,7 +11,7 @@ import { prizeMode, limitForMode, wheelSchema, type Prize, type PrizeMode } from
 const base = "rounded-xl border border-border bg-input px-3.5 py-3 text-base outline-none transition focus:border-primary focus:ring-1 focus:ring-ring sm:text-sm";
 const field = `w-full ${base}`;
 const modes: { id: PrizeMode; label: string; hint: string }[] = [
-  { id: "u", label: "Unlimited", hint: "Every guest can win." },
+  { id: "u", label: "Unlimited", hint: "Wins rarely (about 1 in 10 spins); most spins land on Maybe Next Time." },
   { id: "l", label: "Daily limit", hint: "Only the number of people you choose can win today." },
   { id: "z", label: "Display only", hint: "Shown on the wheel but nobody wins." },
 ];
@@ -116,7 +116,7 @@ export function WheelPanel() {
             {halfHours.slice(1).map((m) => <option key={m} value={m}>{timeLabel(m)}</option>)}
           </select>
         </div>
-        <p className="text-xs text-muted-foreground">Daily-limit prizes are spread across these hours and adjust to how busy it is: quiet mornings roll prizes over to later, busy hours make each spin less likely to win.</p>
+        <p className="text-xs text-muted-foreground">Daily-limit prizes are spread across these hours and adjust to how busy it is: quiet mornings roll prizes over to later, busy hours make each spin less likely to win. After any prize, the next one comes at least an hour later; every prize counts toward the limit the moment it is won, even if you never check its code.</p>
       </div>
     </div>
 

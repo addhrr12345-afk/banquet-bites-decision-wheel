@@ -43,6 +43,20 @@
       "when": 1795194357246,
       "tag": "0005_adaptive_wheel_prize_pacing",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795194964306,
+      "tag": "0006_wheel_prize_gap",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795195037723,
+      "tag": "0007_wheel_prize_gap_boost",
+      "breakpoints": true
     }
   ]
 }

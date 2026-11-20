@@ -89,3 +89,58 @@ describe("limited prizes: simulated days", () => {
     expect(allGiven).toBeGreaterThanOrEqual(180);
   });
 });
+
+import { prizeGap, prizeGapBoost, UNLIMITED_PRIZE_CHANCE } from "@/lib/wheel-schema";
+
+describe("prizes never come in the same hour, except when needed to give them all", () => {
+  it("keeps a one-hour gap when there is enough time left", () => {
+    expect(prizeGap(CLOSE - 9 * 60, 6)).toBe(60);
+  });
+  it("shortens the gap only when the remaining prizes would not fit before 21:00", () => {
+    expect(prizeGap(60, 3)).toBe(20);
+  });
+  it("unlimited prizes win only about 1 in 10 spins", () => expect(UNLIMITED_PRIZE_CHANCE).toBe(0.1));
+});
+
+/** Simulates the owner's setup (Free Coffee ×4, 10 Off ×2) with the gap; returns win minutes. */
+function simulateGapDay(spinMinutes: number[], historyAvg: number | null, seed: number) {
+  let r = seed;
+  const rand = () => ((r = (r * 1103515245 + 12345) % 2147483648) / 2147483648);
+  const limits = [4, 2];
+  const won = [0, 0];
+  const wins: number[] = [];
+  spinMinutes.forEach((m, i) => {
+    const frac = dayFraction(m, OPEN, CLOSE);
+    const remaining = limits.reduce((s, l, k) => s + l - won[k]!, 0);
+    const last = wins[wins.length - 1];
+    const gap = prizeGap(CLOSE - m, remaining);
+    if (last !== undefined && m - last < gap) return;
+    const boost = prizeGapBoost(CLOSE - m, remaining, gap);
+    const lucky = limits.map((l, k) => won[k]! < prizeCeiling(l, frac) && rand() < Math.min(1, prizeChance(l - won[k]!, frac, i, historyAvg) * boost));
+    const k = lucky.findIndex(Boolean);
+    if (k >= 0) { won[k]!++; wins.push(m); }
+  });
+  return wins;
+}
+
+describe("owner's setup: 4 free coffees and 2 discounts a day", () => {
+  it("on a normal day (120 spins) prizes come less than an hour apart only rarely, and all 6 are given", () => {
+    let allGiven = 0, pairs = 0, close = 0;
+    for (let seed = 1; seed <= 300; seed++) {
+      const wins = simulateGapDay(evenly(120, OPEN, CLOSE), 120, seed);
+      wins.slice(1).forEach((m, j) => { pairs++; if (m - wins[j]! < 60) close++; });
+      if (wins.length === 6) allGiven++;
+    }
+    expect(close / pairs).toBeLessThan(0.03);
+    expect(allGiven).toBeGreaterThanOrEqual(295);
+  });
+  it("on a quiet day (30 spins) all 6 are still given", () => {
+    let allGiven = 0;
+    for (let seed = 1; seed <= 300; seed++) if (simulateGapDay(evenly(30, OPEN, CLOSE), 30, seed).length === 6) allGiven++;
+    expect(allGiven).toBeGreaterThanOrEqual(290);
+  });
+  it("most spins are Maybe Next Time", () => {
+    const wins = simulateGapDay(evenly(120, OPEN, CLOSE), 120, 7);
+    expect(wins.length).toBeLessThanOrEqual(6);
+  });
+});

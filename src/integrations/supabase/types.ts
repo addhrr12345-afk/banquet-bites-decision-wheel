@@ -333,6 +333,14 @@ export type Database = {
         }
         Returns: number
       }
+      wheel_prize_gap: {
+        Args: { p_minutes_left: number; p_remaining: number }
+        Returns: number
+      }
+      wheel_prize_gap_boost: {
+        Args: { p_gap: number; p_minutes_left: number; p_remaining: number }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

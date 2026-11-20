@@ -73,3 +73,24 @@ export function prizeChance(remaining: number, frac: number, todaySpins: number,
   const expectedLeft = Math.max(total * (1 - frac), 1);
   return Math.min(1, remaining / expectedLeft);
 }
+
+/** Unlimited real prizes win on this share of spins (when the gap allows); the rest land on "Maybe Next Time". */
+export const UNLIMITED_PRIZE_CHANCE = 0.1;
+
+/**
+ * Minimum minutes between two real prizes (mirrors wheel_prize_gap): one hour, shortened only when the
+ * limited prizes still to give would not otherwise fit into the open minutes left today.
+ */
+export function prizeGap(minutesLeft: number, remaining: number): number {
+  if (remaining <= 0) return 60;
+  return Math.min(60, Math.max(minutesLeft, 0) / remaining);
+}
+
+/**
+ * Spins inside a gap cannot win, so open spins get a proportionally higher chance (mirrors
+ * wheel_prize_gap_boost); this keeps prizes on schedule instead of bunching up before closing.
+ */
+export function prizeGapBoost(minutesLeft: number, remaining: number, gap: number): number {
+  if (minutesLeft <= 0 || remaining <= 1) return 1;
+  return minutesLeft / Math.max(minutesLeft - (remaining - 1) * gap, minutesLeft * 0.25);
+}
