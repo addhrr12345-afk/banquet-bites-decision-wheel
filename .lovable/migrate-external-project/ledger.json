@@ -1,11 +1,11 @@
 [
- {"capability":"code","source":"GitHub lalahkgkhh-art/banquet-bites-decision-wheel: all routes, components, public/menu photos, assets, tests, cark.html, Vercel/Netlify config, roadmap, AGENTS.md","outcome":"copy","status":"verified","next_action":"none"},
+ {"capability":"code","source":"GitHub bah188354-lgtm/banquet-bites-decision-wheel: all routes, components, public/menu photos, assets, tests, cark.html, Vercel/Netlify config, roadmap, AGENTS.md","outcome":"copy","status":"verified","next_action":"none"},
  {"capability":"schema","source":"drizzle/migrations 0000: menu_categories, menu_items, menu_reviews, guest_comments, wheel_*, admin_pin_attempts, social_accounts, spin_wheel(), spin_wheel_guest()","outcome":"migrate","status":"verified","next_action":"none"},
- {"capability":"records","source":"drizzle/migrations 0001 + 0000 seeds: 11 categories, 53 items, wheel defaults, 3 social rows","outcome":"migrate","status":"verified","next_action":"none"},
+ {"capability":"records","source":"drizzle/migrations 0001 + 0000 seeds: 11 categories, 53 items, wheel defaults, 3 social rows; 0002 relinks 15 photo paths to bundled files","outcome":"migrate","status":"verified","next_action":"none"},
  {"capability":"live records not in repo","source":"Edits, guest comments, prize codes, social links stored only in the old backend","outcome":"migrate","status":"pending","next_action":"User exports CSV/JSON from the old project if needed"},
  {"capability":"uploaded photos in old storage","source":"Old private menu-photos bucket files","outcome":"migrate","status":"pending","next_action":"Repo items use bundled photos; re-upload any custom photos from the dashboard"},
  {"capability":"auth","source":"None (passwordless dashboard)","outcome":"not needed","status":"accepted","next_action":"none"},
  {"capability":"file storage","source":"Private menu-photos bucket","outcome":"migrate","status":"verified","next_action":"none"},
  {"capability":"QR cutover","source":"QR targets <published>/menu","outcome":"cutover","status":"pending","next_action":"Publish this project; reprint QR codes if the address changes"},
- {"capability":"verification","source":"tests 40/40, dashboard, guest menu, wheel config + spin, photos","outcome":"verify","status":"verified","next_action":"none"}
+ {"capability":"verification","source":"tests 40/40, dashboard, guest menu with all photos, wheel config + spin","outcome":"verify","status":"verified","next_action":"none"}
 ]
