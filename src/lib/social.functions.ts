@@ -6,7 +6,14 @@ import type { SocialAccount } from "./social";
 
 export const getSocial = createServerFn({ method: "GET" }).handler(async (): Promise<SocialAccount[]> => {
   const client = createMenuClient(process.env['SUPABASE_URL'], process.env['SUPABASE_PUBLISHABLE_KEY']);
-  const { data, error } = await client.from("social_accounts").select("*").order("position");
+  const { data, error } = await client.from("social_accounts").select("id, url, position").order("position");
+  if (error) throw new Error("Social accounts could not be loaded.");
+  return (data ?? []) as SocialAccount[];
+});
+
+// Dashboard view: includes accounts without a link, which guests cannot read.
+export const getSocialAdmin = createServerFn({ method: "GET" }).middleware([managementDb]).handler(async ({ context }): Promise<SocialAccount[]> => {
+  const { data, error } = await context.db.from("social_accounts").select("id, url, position").order("position");
   if (error) throw new Error("Social accounts could not be loaded.");
   return (data ?? []) as SocialAccount[];
 });

@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { socialQuery } from "@/lib/menu-queries";
+import { socialAdminQuery } from "@/lib/menu-queries";
 import { saveSocial } from "@/lib/social.functions";
 import { socialLabels, type SocialAccount } from "@/lib/social";
 
@@ -13,7 +13,7 @@ const field = "w-full rounded-xl border border-border bg-input px-3.5 py-3 text-
 export function SocialPanel() {
   const client = useQueryClient();
   const save = useServerFn(saveSocial);
-  const { data } = useQuery(socialQuery);
+  const { data } = useQuery(socialAdminQuery);
   const [rows, setRows] = useState<SocialAccount[]>([]);
   const [busy, setBusy] = useState(false);
   useEffect(() => { if (data) setRows(data); }, [data]);
