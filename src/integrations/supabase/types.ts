@@ -224,24 +224,30 @@ export type Database = {
       }
       wheel_settings: {
         Row: {
+          close_hour: number
           id: number
           max_spins: number
+          open_hour: number
           prizes: Json
           subtitle: string
           title: string
           updated_at: string
         }
         Insert: {
+          close_hour?: number
           id?: number
           max_spins?: number
+          open_hour?: number
           prizes?: Json
           subtitle?: string
           title?: string
           updated_at?: string
         }
         Update: {
+          close_hour?: number
           id?: number
           max_spins?: number
+          open_hour?: number
           prizes?: Json
           subtitle?: string
           title?: string
@@ -294,6 +300,15 @@ export type Database = {
       spin_wheel_guest: {
         Args: { p_code: string; p_device: string; p_ip: string }
         Returns: Json
+      }
+      wheel_prize_allowance: {
+        Args: {
+          p_close: number
+          p_limit: number
+          p_local: string
+          p_open: number
+        }
+        Returns: number
       }
     }
     Enums: {

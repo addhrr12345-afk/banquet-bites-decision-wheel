@@ -18,7 +18,7 @@ export const getWheelAdmin = createServerFn({ method: "GET" }).middleware([manag
   if (settings.error || wins.error || claims.error) throw new Error("Wheel settings could not be loaded.");
   const s = settings.data;
   return {
-    title: s.title, subtitle: s.subtitle, max_spins: s.max_spins,
+    title: s.title, subtitle: s.subtitle, max_spins: s.max_spins, open_hour: s.open_hour, close_hour: s.close_hour,
     prizes: (s.prizes ?? []) as unknown as Prize[],
     wins: Object.fromEntries((wins.data ?? []).map((w) => [w.prize, w.count])) as Record<string, number>,
     claims: claims.data ?? [],

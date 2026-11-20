@@ -62,7 +62,8 @@ function ClaimVerifier({ claims }: { claims: { code: string; prize: string; crea
   </div>;
 }
 
-type Draft = { title: string; subtitle: string; max_spins: number; prizes: Prize[] };
+type Draft = { title: string; subtitle: string; max_spins: number; open_hour: number; close_hour: number; prizes: Prize[] };
+const hourLabel = (h: number) => `${String(h).padStart(2, "0")}:00`;
 
 export function WheelPanel() {
   const wheel = useQuery(wheelQuery);
@@ -70,7 +71,7 @@ export function WheelPanel() {
   const save = useServerFn(saveWheel); const reset = useServerFn(resetWheelToday);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (wheel.data && !draft) setDraft({ title: wheel.data.title, subtitle: wheel.data.subtitle, max_spins: wheel.data.max_spins, prizes: wheel.data.prizes }); }, [wheel.data, draft]);
+  useEffect(() => { if (wheel.data && !draft) setDraft({ title: wheel.data.title, subtitle: wheel.data.subtitle, max_spins: wheel.data.max_spins, open_hour: wheel.data.open_hour, close_hour: wheel.data.close_hour, prizes: wheel.data.prizes }); }, [wheel.data, draft]);
 
   if (wheel.isError) return <p className="mt-6 text-sm text-destructive">Wheel settings could not be loaded.</p>;
   if (!draft || !wheel.data) return <p className="mt-6 text-sm text-muted-foreground">Loading...</p>;
@@ -79,7 +80,7 @@ export function WheelPanel() {
 
   async function submit() {
     const parsed = wheelSchema.safeParse(draft);
-    if (!parsed.success) { toast.error(parsed.error.issues[0]?.message.includes("different") ? "Prize names must be different from each other." : "Every prize needs a name and icon; at least 2 prizes are required."); return; }
+    if (!parsed.success) { toast.error(parsed.error.issues[0]?.message.includes("Closing") ? "Closing time must be after opening time." : parsed.error.issues[0]?.message.includes("different") ? "Prize names must be different from each other." : "Every prize needs a name and icon; at least 2 prizes are required."); return; }
     setBusy(true);
     try { await save({ data: parsed.data }); await client.invalidateQueries({ queryKey: wheelQuery.queryKey }); toast.success("Wheel saved. Guests will see the new version."); }
     catch { toast.error("Wheel could not be saved."); } finally { setBusy(false); }
@@ -104,6 +105,18 @@ export function WheelPanel() {
       <label className="flex flex-wrap items-center gap-2 text-sm font-medium">Each guest can spin at most
         <input type="number" min={0} max={99} className={`${base} w-20 text-center`} value={draft.max_spins} onChange={(e) => setDraft({ ...draft, max_spins: Math.max(0, Math.min(99, parseInt(e.target.value, 10) || 0)) })} />
         times per day <span className="text-xs font-normal text-muted-foreground">(0 = unlimited)</span></label>
+      <div className="space-y-1.5">
+        <div className="flex flex-wrap items-center gap-2 text-sm font-medium">Café open from
+          <select aria-label="Opening time" className={base} value={draft.open_hour} onChange={(e) => setDraft({ ...draft, open_hour: Number(e.target.value) })}>
+            {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
+          </select>
+          to
+          <select aria-label="Closing time" className={base} value={draft.close_hour} onChange={(e) => setDraft({ ...draft, close_hour: Number(e.target.value) })}>
+            {Array.from({ length: 24 }, (_, i) => i + 1).map((h) => <option key={h} value={h}>{h === 24 ? "24:00" : hourLabel(h)}</option>)}
+          </select>
+        </div>
+        <p className="text-xs text-muted-foreground">Daily-limit prizes are spread evenly across these hours, so they don't all go in the first hour.</p>
+      </div>
     </div>
 
     <h2 className="mt-8 text-lg font-semibold">Prizes</h2>
